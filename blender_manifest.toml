@@ -1,0 +1,12 @@
+schema_version = "1.0.0"
+id = "MBFA"
+version = "1.0.0"
+name = "MBFA"
+tagline = "Make Brush From Alpha"
+maintainer = "viXello"
+type = "add-on"
+
+license = ["MIT"]
+copyright = ["© 2026 viXello"]
+
+blender_version_min = "5.2.0"
