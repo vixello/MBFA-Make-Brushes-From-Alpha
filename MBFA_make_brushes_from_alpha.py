@@ -1,15 +1,18 @@
 import bpy
+from .MBFA_AlphaItem import MBFA_AlphaItem
 import os
 
 extensions = {".jpg", ".jpeg", ".png", ".tif", ".bmp", ".psd"}
-bpy.types.Scene.my_folder = bpy.props.StringProperty(name="Alpha Folder", subtype="DIR_PATH")
+
+
+bpy.types.Scene.my_folder = bpy.props.StringProperty(name="Alpha Folder", subtype="DIR_PATH", update=lambda self, context: refresh_alpha_list(context))
 bpy.types.Scene.asset_dir_path = bpy.props.StringProperty(name="Brushes Asset Library Folder", subtype="DIR_PATH")
 bpy.types.Scene.brushes_blend_file = bpy.props.StringProperty(
     name="Brushes File",
     description="Name of the .blend file where brushes will be saved",
     default="Brushes.blend"
 )
-
+bpy.types.Scene.mbfa_preview_image = bpy.props.PointerProperty(type=bpy.types.Image)
 
 
 class MBFA_PT_panel(bpy.types.Panel):
@@ -38,6 +41,43 @@ class MBFA_PT_panel(bpy.types.Panel):
         box.label(text="Brushes Blend File Name", icon="FILE_BLEND")
         box.prop(context.scene, "brushes_blend_file", text="")
 
+        box = layout.box()
+        box.label(text="Alpha Browser", icon="IMAGE_DATA")
+
+        row = box.row()
+        row.template_list("MBFA_UL_alpha_list", "", context.scene, "mbfa_alpha_items", 
+                          context.scene, "mbfa_alpha_index", rows=8)
+
+        if context.scene.mbfa_alpha_items:
+            item = context.scene.mbfa_alpha_items[context.scene.mbfa_alpha_index]
+            
+            stroke_method_box = box.box()
+            
+            stroke_method_box.label(text="Choose stroke method for selected alpha")
+            stroke_method_box.prop(item, "stroke_method", text="")
+            
+            preview_box = box.box()
+
+            img_path = item.image_path
+            try:
+                img = bpy.data.images.load(img_path)
+
+                preview = img.preview_ensure()
+                preview.image_size = (128, 128)
+                img.scale(128, 128)
+                preview.image_pixels_float = img.pixels[:]
+
+                context.scene.mbfa_preview_image = img
+
+                preview_box.template_ID_preview(
+                    context.scene,
+                    "mbfa_preview_image",
+                    rows=4,
+                    cols=4
+                )
+
+            except:
+                preview_box.label(text="Cannot load preview")
         layout.operator("mbfa.run", icon="BRUSH_DATA")
 
 
@@ -56,10 +96,14 @@ class MBFA_OT_run(bpy.types.Operator):
         asset_file_path = os.path.join(asset_folder, context.scene.brushes_blend_file)
         
         ensure_asset_library_exists(asset_file_path)
-        add_brushes_from_alpha(alpha_folder, asset_file_path)
+        add_brushes_from_alpha(context, alpha_folder, asset_file_path)
 
         self.report({'INFO'}, "Brushes added to asset library.")
         return {"FINISHED"}
+    
+class MBFA_UL_alpha_list(bpy.types.UIList):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=item.filename, icon="IMAGE_DATA")
 
 def ensure_asset_library_exists(asset_file_path):
     """Create empty asset library file if missing."""
@@ -84,7 +128,7 @@ def ensure_asset_library_exists(asset_file_path):
 
     print("✔ Created empty asset library:", asset_file_path)
         
-def add_brushes_from_alpha(alpha_folder, asset_file_path):
+def add_brushes_from_alpha(context, alpha_folder, asset_file_path):
     """Create brushes from alphas and save them into the asset library."""
     
     if not bpy.data.filepath:
@@ -96,15 +140,11 @@ def add_brushes_from_alpha(alpha_folder, asset_file_path):
         
     bpy.ops.wm.open_mainfile(filepath=asset_file_path)
 
-    for file in os.listdir(alpha_folder):
-        name, ext = os.path.splitext(file)
-        if ext.lower() not in extensions:
-            continue
-
-        path = os.path.join(alpha_folder, file)
+    for item in context.scene.mbfa_alpha_items:
+        name = item.filename
 
         # Load image
-        img = bpy.data.images.load(path)
+        img = bpy.data.images.load(item.image_path)
 
         # Create texture
         tex = bpy.data.textures.new(name + "_tex", type="IMAGE")
@@ -113,7 +153,7 @@ def add_brushes_from_alpha(alpha_folder, asset_file_path):
         # Create brush
         brush = bpy.data.brushes.new(name=name)
         brush.use_paint_sculpt = True
-        brush.stroke_method = "ANCHORED"
+        brush.stroke_method = item.stroke_method
 
         # --- ASSIGN TEXTURE (Blender 5.1 way) ---
         if not brush.texture_slot:
@@ -144,11 +184,28 @@ def add_brushes_from_alpha(alpha_folder, asset_file_path):
     if original_file:
         bpy.ops.wm.open_mainfile(filepath=original_file)
 
-print("⚠ Now manually mark brushes as assets in the Asset Browser.")
-print("⚠ Then save this .blend inside your Asset Library folder.")
+def refresh_alpha_list(context):
+    scene = context.scene
+    scene.mbfa_alpha_items.clear()
+
+    folder = scene.my_folder
+    if not folder or not os.path.isdir(folder):
+        return
+
+    for file in os.listdir(folder):
+        name, ext = os.path.splitext(file)
+        if ext.lower() in extensions:
+            item = scene.mbfa_alpha_items.add()
+            item.filename = file
+            item.stroke_method = "ANCHORED"   # default
+            item.image_path = os.path.join(folder, file)
+#print("⚠ Now manually mark brushes as assets in the Asset Browser.")
+#print("⚠ Then save this .blend inside your Asset Library folder.")
 
 
 classes = (
+    MBFA_AlphaItem,
+    MBFA_UL_alpha_list,
     MBFA_PT_panel,
     MBFA_OT_run,
 )
@@ -158,7 +215,12 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
+    bpy.types.Scene.mbfa_alpha_items = bpy.props.CollectionProperty(type=MBFA_AlphaItem)
+    bpy.types.Scene.mbfa_alpha_index = bpy.props.IntProperty()
 
 def unregister():
+    del bpy.types.Scene.mbfa_alpha_items
+    del bpy.types.Scene.mbfa_alpha_index
+
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
