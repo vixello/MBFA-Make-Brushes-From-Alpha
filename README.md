@@ -28,13 +28,10 @@ It supports both **Sculpt** and **Texture Paint** brushes and stores the generat
   - `.tif`
   - `.bmp`
   - `.psd`
----
 
 ## Requirements
 
 - Blender 5.2 or newer
-
----
 
 ---
 
