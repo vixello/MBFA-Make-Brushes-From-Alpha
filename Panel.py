@@ -1,7 +1,7 @@
 import bpy
 
 from .Models import MBFA_AlphaItem
-from .Operators import MBFA_OT_run, MBFA_OT_reload_alpha_folder
+from .Operators import MBFA_OT_run, MBFA_OT_reload_alpha_folder, MBFA_OT_set_all_texture_paint, MBFA_OT_set_all_sculpt
 from .LibraryManager import MBFA_UL_alpha_list, MBFA_LibraryManager
 import os
 
@@ -24,6 +24,8 @@ class MBFA_PT_panel(bpy.types.Panel):
         layout.label(text="Make Brush From Alpha")
         layout.operator("mbfa.run", icon="BRUSH_DATA")
         
+        # --------------------------------------------------------------------------------------
+        
         box = layout.box()
         box.label(text="Alpha Folder", icon="FILE_FOLDER")
         box.prop(context.scene, "my_folder",text="")
@@ -38,13 +40,21 @@ class MBFA_PT_panel(bpy.types.Panel):
         box.label(text="Brushes Blend File Name", icon="FILE_BLEND")
         box.prop(context.scene, "brushes_blend_file", text="")
 
+        # --------------------------------------------------------------------------------------
+        
         box = layout.box()
         box.label(text="Alpha Browser", icon="IMAGE_DATA")
 
         row = box.row()
-        row.template_list("MBFA_UL_alpha_list", "", context.scene, "mbfa_alpha_items", 
+        
+        row.operator("mbfa.all_texture_paint", text="All Texture Paint", icon="BRUSH_DATA")
+        row.operator("mbfa.all_sculpt", text="All Sculpt", icon="SCULPTMODE_HLT")
+        
+        col = box.column()
+        col.template_list( "MBFA_UL_alpha_list", "", context.scene, "mbfa_alpha_items", 
                           context.scene, "mbfa_alpha_index", rows=8)
 
+        # --------------------------------------------------------------------------------------
         if context.scene.mbfa_alpha_items:
             item = context.scene.mbfa_alpha_items[context.scene.mbfa_alpha_index]
 
@@ -75,6 +85,7 @@ class MBFA_PT_panel(bpy.types.Panel):
                 row = preview_col.row()
                 row.alignment = "CENTER"
                 row.label(text="Please add or reload the alpha folder")
+        # --------------------------------------------------------------------------------------
                 
             stroke_method_box = box.box()
             
@@ -105,7 +116,9 @@ classes = (
     MBFA_UL_alpha_list,
     MBFA_PT_panel,
     MBFA_OT_run,
-    MBFA_OT_reload_alpha_folder
+    MBFA_OT_reload_alpha_folder,
+    MBFA_OT_set_all_texture_paint,
+    MBFA_OT_set_all_sculpt
 )
 
 

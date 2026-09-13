@@ -4,7 +4,12 @@ class MBFA_AlphaItem(bpy.types.PropertyGroup):
     filename: bpy.props.StringProperty()
     image_path: bpy.props.StringProperty()
     brush_name: bpy.props.StringProperty()
-    
+
+    texture_paint: bpy.props.BoolProperty(
+        name="Texture Paint",
+        description="Create this alpha as a Texture Paint brush",
+        default=False
+    )
     stroke_method: bpy.props.EnumProperty(
         name="Stroke",
         items=[

@@ -32,3 +32,39 @@ class MBFA_OT_reload_alpha_folder(bpy.types.Operator):
         
         self.report({'INFO'}, "Alpha folder reloaded.")
         return {'FINISHED'}
+    
+class MBFA_OT_set_all_texture_paint(bpy.types.Operator):
+
+    bl_label = "All Texture Paint"
+    bl_idname = "mbfa.all_texture_paint"
+
+    def execute(self, context):
+
+        for item in context.scene.mbfa_alpha_items:
+            item.texture_paint = True
+            item.brush_type = "TEXTURE_PAINT"
+
+        self.report(
+            {'INFO'},
+            "All brushes set to Texture Paint."
+        )
+
+        return {'FINISHED'}
+    
+class MBFA_OT_set_all_sculpt(bpy.types.Operator):
+
+    bl_label = "All Sculpt"
+    bl_idname = "mbfa.all_sculpt"
+
+    def execute(self, context):
+
+        for item in context.scene.mbfa_alpha_items:
+            item.texture_paint = False
+            item.brush_type = "SCULPT"
+
+        self.report(
+            {'INFO'},
+            "All brushes set to Sculpt."
+        )
+
+        return {'FINISHED'}
