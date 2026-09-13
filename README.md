@@ -101,7 +101,7 @@ You can configure:
 
 ## 🖌 Creating Brushes
 
-After configuring your alpha images, click: `Add Brushes Function`
+After configuring your alpha images, click: `Add Brushes From Alpha`
 
 <img width="316" height="57" alt="obraz" src="https://github.com/user-attachments/assets/4a66cd11-a206-4d0c-919c-5ab1df63f1db" />
 
