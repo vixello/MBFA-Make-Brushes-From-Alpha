@@ -8,7 +8,7 @@ bl_info = {
     "category": "Paint",
 }
 
-from .MBFA_make_brushes_from_alpha import register, unregister
+from .Panel import register, unregister
 
 
 if __name__ == "__main__":

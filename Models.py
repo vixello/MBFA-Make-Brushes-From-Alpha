@@ -3,6 +3,7 @@ import bpy
 class MBFA_AlphaItem(bpy.types.PropertyGroup):
     filename: bpy.props.StringProperty()
     image_path: bpy.props.StringProperty()
+    brush_name: bpy.props.StringProperty()
     
     stroke_method: bpy.props.EnumProperty(
         name="Stroke",
@@ -16,4 +17,30 @@ class MBFA_AlphaItem(bpy.types.PropertyGroup):
             ("CURVE", "Curve", "")
         ],
         default="ANCHORED"
+    )
+    
+    size: bpy.props.IntProperty(
+        name="Size",
+        default=100,
+        min=1,
+        max=1000
+    )
+
+    strength: bpy.props.FloatProperty(
+        name="Strength",
+        default=0.5,
+        min=0.0,
+        max=1.0
+    )
+
+    spacing: bpy.props.IntProperty(
+        name="Spacing",
+        default=10,
+        min=1,
+        max=100
+    )
+
+    invert_alpha: bpy.props.BoolProperty(
+        name="Invert Alpha",
+        default=False
     )
