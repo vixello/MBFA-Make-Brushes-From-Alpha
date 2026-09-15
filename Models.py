@@ -1,6 +1,7 @@
 import bpy
 
 class MBFA_AlphaItem(bpy.types.PropertyGroup):
+    id: bpy.props.StringProperty()
     filename: bpy.props.StringProperty()
     image_path: bpy.props.StringProperty()
     brush_name: bpy.props.StringProperty()
@@ -47,5 +48,14 @@ class MBFA_AlphaItem(bpy.types.PropertyGroup):
 
     invert_alpha: bpy.props.BoolProperty(
         name="Invert Alpha",
+        default=False
+    )
+
+class MBFA_OverwriteSelection(bpy.types.PropertyGroup):
+    id: bpy.props.StringProperty()
+    
+    selected: bpy.props.BoolProperty(
+        name="Overwrite",
+        description="Overwrite this existing brush",
         default=False
     )

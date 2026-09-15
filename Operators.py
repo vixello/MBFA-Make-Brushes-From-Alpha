@@ -8,19 +8,59 @@ class MBFA_OT_run(bpy.types.Operator):
     bl_idname = "mbfa.run"
 
     def execute(self, context):
-        alpha_folder = context.scene.my_folder
-        asset_folder = context.scene.asset_dir_path
+        alpha_folder = context.scene.alpha_folder
+        asset_save_folder = context.scene.asset_dir_path
         
-        if not alpha_folder or not asset_folder:
+        if not alpha_folder or not asset_save_folder:
             self.report({'ERROR'}, "Both folders must be set.")
             return {'CANCELLED'}
        
-        asset_file_path = os.path.join(asset_folder, context.scene.brushes_blend_file)
+        asset_file_path = os.path.join(asset_save_folder, context.scene.brushes_blend_file)
         
         MBFA_LibraryManager.ensure_asset_library_exists(asset_file_path)
-        MBFA_LibraryManager.add_brushes_from_alpha(context, alpha_folder, asset_file_path)
+        result = MBFA_LibraryManager.add_brushes_from_alpha(context, asset_file_path, context.scene.mbfa_alpha_items, False)
 
-        self.report({'INFO'}, "Brushes added to asset library.")
+        if result is None:
+            self.report( {'WARNING'}, "No alpha brushes to create.")
+            return {'CANCELLED'}
+
+        self.report( {'INFO'},
+            f"Created {len(result['created'])} brushes, "
+            f"skipped {len(result['skipped'])} existing brushes."
+        )
+        return {"FINISHED"}
+    
+class MBFA_OT_overwrite(bpy.types.Operator):
+    bl_label = "Overwrite Selected Brushes Data"
+    bl_idname = "mbfa.overwrite"
+
+    def execute(self, context):
+        alpha_folder = context.scene.alpha_folder
+        asset_save_folder = context.scene.asset_dir_path
+        
+        if not alpha_folder or not asset_save_folder:
+            self.report({'ERROR'}, "Both folders must be set.")
+            return {'CANCELLED'}
+       
+        asset_file_path = os.path.join(asset_save_folder, context.scene.brushes_blend_file)
+        
+        MBFA_LibraryManager.ensure_asset_library_exists(asset_file_path)
+        
+        selected_items = []
+        
+        for item in context.scene.mbfa_skipped_alpha_items:
+            for selection in context.scene.mbfa_overwrite_selection:
+                if selection.id == item.id and selection.selected:
+                    selected_items.append(item)
+                    break
+                
+        result = MBFA_LibraryManager.add_brushes_from_alpha(context, asset_file_path, selected_items, True)
+
+        if result is None:
+            self.report({'WARNING'}, "No brushes were selected.")
+            return {'CANCELLED'}
+
+        self.report( {'INFO'}, f"Overwritten {len(result['created'])} brushes." )
         return {"FINISHED"}
     
 class MBFA_OT_reload_alpha_folder(bpy.types.Operator):

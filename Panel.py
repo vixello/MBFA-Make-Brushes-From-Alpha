@@ -1,8 +1,8 @@
 import bpy
 
-from .Models import MBFA_AlphaItem
+from .Models import MBFA_AlphaItem, MBFA_OverwriteSelection
 from .Operators import MBFA_OT_run, MBFA_OT_reload_alpha_folder, MBFA_OT_set_all_texture_paint, MBFA_OT_set_all_sculpt
-from .LibraryManager import MBFA_UL_alpha_list, MBFA_LibraryManager
+from .LibraryManager import MBFA_UL_alpha_list, MBFA_UL_skipped_alpha_list, MBFA_LibraryManager
 import os
 
 class MBFA_PT_panel(bpy.types.Panel):
@@ -23,12 +23,14 @@ class MBFA_PT_panel(bpy.types.Panel):
         
         layout.label(text="Make Brush From Alpha")
         layout.operator("mbfa.run", icon="BRUSH_DATA")
-        
+        # --------------------------------------------------------------------------------------
+        layout.label(text="Brush Errors and Update")
+    
         # --------------------------------------------------------------------------------------
         
         box = layout.box()
         box.label(text="Alpha Folder", icon="FILE_FOLDER")
-        box.prop(context.scene, "my_folder",text="")
+        box.prop(context.scene, "alpha_folder",text="")
         
         layout.operator("mbfa.reload", icon="FILE_REFRESH")
         
@@ -55,10 +57,37 @@ class MBFA_PT_panel(bpy.types.Panel):
                           context.scene, "mbfa_alpha_index", rows=8)
 
         # --------------------------------------------------------------------------------------
-        if context.scene.mbfa_alpha_items:
-            item = context.scene.mbfa_alpha_items[context.scene.mbfa_alpha_index]
+        MBFA_PanelUtils.show_preview(context.scene.mbfa_alpha_items, context.scene.mbfa_alpha_index, box)
 
-            preview_box = box.box()
+class MBFA_PT_BrushErrorsAndUpdate(bpy.types.Panel):
+    bl_label = "Brush Errors And Update"
+    bl_idname = "MBFA_PT_BrushErrorsAndUpdate"
+    bl_parent_id = "MBFA_PT_panel" 
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "MBFA"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        layout = self.layout
+        
+        box = layout.box()
+        col = box.column()
+        col.template_list( "MBFA_UL_skipped_alpha_list", "", context.scene, "mbfa_skipped_alpha_items", 
+                          context.scene, "mbfa_skipped_alpha_index", rows=8)
+        layout.alert = True
+        layout.operator("mbfa.overwrite", icon="STATUS_WARNING")
+        layout.alert = False
+
+        MBFA_PanelUtils.show_preview(context.scene.mbfa_skipped_alpha_items, context.scene.mbfa_skipped_alpha_index, box)
+
+class MBFA_PanelUtils:
+    @staticmethod
+    def show_preview(items, index, parentBox):
+        if items:
+            item = items[index]
+
+            preview_box = parentBox.box()
             preview_col = preview_box.column(align=True)
 
             row = preview_col.row()
@@ -85,9 +114,8 @@ class MBFA_PT_panel(bpy.types.Panel):
                 row = preview_col.row()
                 row.alignment = "CENTER"
                 row.label(text="Please add or reload the alpha folder")
-        # --------------------------------------------------------------------------------------
                 
-            stroke_method_box = box.box()
+            stroke_method_box = parentBox.box()
             
             stroke_method_box.label(text="Brush settings")
                         
@@ -108,25 +136,26 @@ class MBFA_PT_panel(bpy.types.Panel):
             row = stroke_method_box.row()
             row.use_property_split = False
             row.prop(item, "spacing", text="Spacing")
-                        
-
-
+                
+                
 classes = (
     MBFA_AlphaItem,
+    MBFA_OverwriteSelection,
     MBFA_UL_alpha_list,
+    MBFA_UL_skipped_alpha_list,
     MBFA_PT_panel,
+    MBFA_PT_BrushErrorsAndUpdate,
     MBFA_OT_run,
     MBFA_OT_reload_alpha_folder,
     MBFA_OT_set_all_texture_paint,
     MBFA_OT_set_all_sculpt
 )
-
-
+        
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    bpy.types.Scene.my_folder = bpy.props.StringProperty(
+    bpy.types.Scene.alpha_folder = bpy.props.StringProperty(
         name="Alpha Folder", 
         subtype="DIR_PATH", 
         update=lambda self, 
@@ -145,19 +174,27 @@ def register():
    
     bpy.types.Scene.mbfa_alpha_items = bpy.props.CollectionProperty(type=MBFA_AlphaItem)
     bpy.types.Scene.mbfa_alpha_index = bpy.props.IntProperty()
-
+    bpy.types.Scene.mbfa_skipped_alpha_items = bpy.props.CollectionProperty(type=MBFA_AlphaItem)
+    bpy.types.Scene.mbfa_skipped_alpha_index = bpy.props.IntProperty()
+    
+    bpy.types.Scene.mbfa_overwrite_selection = bpy.props.CollectionProperty(
+        type=MBFA_OverwriteSelection
+    )
 
 def unregister():
 
     MBFA_LibraryManager.unregisterAlphaPreviews()
 
     for prop in (
-        "my_folder",
+        "alpha_folder",
         "asset_dir_path",
         "brushes_blend_file",
         "mbfa_preview_image",
         "mbfa_alpha_items",
         "mbfa_alpha_index",
+        "mbfa_skipped_alpha_items",
+        "mbfa_skipped_alpha_index",
+        "mbfa_overwrite_selection",
     ):
         if hasattr(bpy.types.Scene, prop):
             delattr(bpy.types.Scene, prop)
