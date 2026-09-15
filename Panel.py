@@ -1,7 +1,7 @@
 import bpy
 
 from .Models import MBFA_AlphaItem, MBFA_OverwriteSelection
-from .Operators import MBFA_OT_run, MBFA_OT_reload_alpha_folder, MBFA_OT_set_all_texture_paint, MBFA_OT_set_all_sculpt
+from .Operators import MBFA_OT_run, MBFA_OT_overwrite, MBFA_OT_reload_alpha_folder, MBFA_OT_set_all_texture_paint, MBFA_OT_set_all_sculpt, MBFA_OT_select_all
 from .LibraryManager import MBFA_UL_alpha_list, MBFA_UL_skipped_alpha_list, MBFA_LibraryManager
 import os
 
@@ -21,11 +21,52 @@ class MBFA_PT_panel(bpy.types.Panel):
         layout.use_property_split = True
         layout.use_property_decorate = False 
         
-        layout.label(text="Make Brush From Alpha")
         layout.operator("mbfa.run", icon="BRUSH_DATA")
-        # --------------------------------------------------------------------------------------
-        layout.label(text="Brush Errors and Update")
-    
+        
+        # ==========================================================
+        # Brush Errors And Update - collapsible section
+        # ==========================================================
+
+        box = layout.box()
+        
+        row = box.row()
+        row.prop(context.scene, "mbfa_show_errors",
+            text="Result",
+            icon="TRIA_DOWN" if context.scene.mbfa_show_errors else "TRIA_RIGHT",
+            emboss=False
+        )
+
+        if context.scene.mbfa_show_errors:
+
+            content = box.column(align=True)
+            
+            if len(context.scene.mbfa_skipped_alpha_items) <= 0:
+                # Placeholder background
+                placeholder = box.column(align=True)
+                row = placeholder.row()
+                row.alignment = "CENTER"
+                row.label(text="Nothing to show yet!", icon="INFO")
+            else:
+                row.operator("mbfa.select_all", text="Select all", icon="CHECKBOX_HLT")
+                content.template_list(
+                    "MBFA_UL_skipped_alpha_list", "",
+                    context.scene, "mbfa_skipped_alpha_items",
+                    context.scene, "mbfa_skipped_alpha_index",
+                    rows=8
+                )
+            # box.template_list("MBFA_UL_skipped_alpha_list", "", context.scene, "mbfa_skipped_alpha_items",
+            #     context.scene, "mbfa_skipped_alpha_index", rows=8)
+
+                row = content.row()
+                row.alert = True
+                row.operator("mbfa.overwrite", icon="STATUS_WARNING")
+                
+                MBFA_PanelUtils.show_preview(
+                    context.scene.mbfa_skipped_alpha_items,
+                    context.scene.mbfa_skipped_alpha_index,
+                    box
+                )
+
         # --------------------------------------------------------------------------------------
         
         box = layout.box()
@@ -59,27 +100,6 @@ class MBFA_PT_panel(bpy.types.Panel):
         # --------------------------------------------------------------------------------------
         MBFA_PanelUtils.show_preview(context.scene.mbfa_alpha_items, context.scene.mbfa_alpha_index, box)
 
-class MBFA_PT_BrushErrorsAndUpdate(bpy.types.Panel):
-    bl_label = "Brush Errors And Update"
-    bl_idname = "MBFA_PT_BrushErrorsAndUpdate"
-    bl_parent_id = "MBFA_PT_panel" 
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "MBFA"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        layout = self.layout
-        
-        box = layout.box()
-        col = box.column()
-        col.template_list( "MBFA_UL_skipped_alpha_list", "", context.scene, "mbfa_skipped_alpha_items", 
-                          context.scene, "mbfa_skipped_alpha_index", rows=8)
-        layout.alert = True
-        layout.operator("mbfa.overwrite", icon="STATUS_WARNING")
-        layout.alert = False
-
-        MBFA_PanelUtils.show_preview(context.scene.mbfa_skipped_alpha_items, context.scene.mbfa_skipped_alpha_index, box)
 
 class MBFA_PanelUtils:
     @staticmethod
@@ -144,11 +164,12 @@ classes = (
     MBFA_UL_alpha_list,
     MBFA_UL_skipped_alpha_list,
     MBFA_PT_panel,
-    MBFA_PT_BrushErrorsAndUpdate,
     MBFA_OT_run,
+    MBFA_OT_overwrite,
     MBFA_OT_reload_alpha_folder,
     MBFA_OT_set_all_texture_paint,
-    MBFA_OT_set_all_sculpt
+    MBFA_OT_set_all_sculpt,
+    MBFA_OT_select_all
 )
         
 def register():
@@ -180,7 +201,12 @@ def register():
     bpy.types.Scene.mbfa_overwrite_selection = bpy.props.CollectionProperty(
         type=MBFA_OverwriteSelection
     )
-
+    
+    bpy.types.Scene.mbfa_show_errors = bpy.props.BoolProperty(
+        name="Brush Errors And Update",
+        default=False
+    )
+    
 def unregister():
 
     MBFA_LibraryManager.unregisterAlphaPreviews()
@@ -195,6 +221,7 @@ def unregister():
         "mbfa_skipped_alpha_items",
         "mbfa_skipped_alpha_index",
         "mbfa_overwrite_selection",
+        "mbfa_show_errors",
     ):
         if hasattr(bpy.types.Scene, prop):
             delattr(bpy.types.Scene, prop)

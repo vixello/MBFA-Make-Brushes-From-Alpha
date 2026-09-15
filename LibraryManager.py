@@ -25,12 +25,14 @@ class MBFA_UL_skipped_alpha_list(bpy.types.UIList):
         
         row = layout.row(align = True)
         
+        selection = None
+                
         for entry in context.scene.mbfa_overwrite_selection:
             if entry.id == item.id:
                 selection = entry
                 break
         if selection:
-            row.prop(selection, "update_brush", text="")
+            row.prop(selection, "selected", text="")
         layout.label(text=item.filename, icon="IMAGE_DATA")
         
 class MBFA_LibraryManager:

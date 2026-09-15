@@ -108,3 +108,20 @@ class MBFA_OT_set_all_sculpt(bpy.types.Operator):
         )
 
         return {'FINISHED'}
+    
+class MBFA_OT_select_all(bpy.types.Operator):
+
+    bl_label = "Select all"
+    bl_idname = "mbfa.select_all"
+
+    def execute(self, context):
+
+        for selection in context.scene.mbfa_overwrite_selection:
+            selection.selected = True
+
+        self.report(
+            {'INFO'},
+            "All brushes selected to be overwritten."
+        )
+
+        return {'FINISHED'}
