@@ -12,6 +12,7 @@ asset_file_path = settings["asset_file_path"]
 result_path = settings["result_path"]
 
 items = settings["items"]
+overwrite = settings.get("overwrite", False)
 
 created_brushes = []
 skipped_brushes = []
@@ -58,22 +59,23 @@ for data in items:
     #     print("Updating existing brush:", name)
     #     bpy.data.brushes.remove(old_brush, do_unlink=True)
 
-    # CHECK IF BRUSH EXISTS
-    existing_brush = bpy.data.brushes.get(name)
-    overwrite = settings.get("overwrite", False)
-    
-    if existing_brush and not overwrite:
-        print("Brush already exists, skipping:", name)
-        skipped_brushes.append(data)
-        continue
-    
-    if existing_brush and overwrite:
-        print("Overwriting existing brush:", name)
-        bpy.data.brushes.remove(
-            existing_brush,
-            do_unlink=True
-        )
+
     try:
+        # CHECK IF BRUSH EXISTS
+        existing_brush = bpy.data.brushes.get(name)
+        
+        if existing_brush and not overwrite:
+            print("Brush already exists, skipping:", name)
+            skipped_brushes.append(data)
+            continue
+        
+        if existing_brush and overwrite:
+            print("Overwriting existing brush:", name)
+            bpy.data.brushes.remove(
+                existing_brush,
+                do_unlink=True
+            )
+            
         # LOAD IMAGE
         print("Loading image:", image_path)
         img = bpy.data.images.load(image_path, check_existing=False)
