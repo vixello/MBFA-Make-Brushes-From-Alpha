@@ -108,14 +108,12 @@ class MBFA_LibraryManager:
         with open(settings_path, "w", encoding="utf-8") as f:
             json.dump(settings, f, indent=4)
 
-
         # 5. BACKGROUND BLENDER SCRIPT
         with open(external_script_path , "r", encoding="utf-8") as f: 
             script = f.read()
 
         # 6. FIND CURRENT BLENDER EXECUTABLE
         blender_executable = bpy.app.binary_path
-
 
         # 7. START SECOND BLENDER PROCESS
         command = [
@@ -127,7 +125,6 @@ class MBFA_LibraryManager:
             settings_path,
         ]
 
-
         print("")
         print("========================================")
         print(" MBFA: Starting background Blender")
@@ -135,7 +132,6 @@ class MBFA_LibraryManager:
         print("")
 
         print(" ".join(command))
-
 
         try:
             result = subprocess.run(command, check=True)
@@ -209,7 +205,12 @@ class MBFA_LibraryManager:
         print("========================================")
         print("")
         print("Brush library:", asset_file_path)
-
+        
+        return {
+            "created": created,
+            "skipped": skipped,
+            "failed": failed,
+        }
 
     # ---------------------------------------------------------
     # ASSET LIBRARY PATH

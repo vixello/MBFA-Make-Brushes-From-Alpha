@@ -22,12 +22,15 @@ class MBFA_OT_run(bpy.types.Operator):
 
         if result is None:
             self.report( {'WARNING'}, "No alpha brushes to create.")
+            context.scene.mbfa_result_log = "No alpha brushes to create."
             return {'CANCELLED'}
 
         self.report( {'INFO'},
             f"Created {len(result['created'])} brushes, "
             f"skipped {len(result['skipped'])} existing brushes."
         )
+        context.scene.mbfa_result_log = f"{len(result['skipped'])} brushes have conflicts."
+        context.scene.mbfa_has_new_results = True
         return {"FINISHED"}
     
 class MBFA_OT_overwrite(bpy.types.Operator):
@@ -117,7 +120,7 @@ class MBFA_OT_select_all(bpy.types.Operator):
     def execute(self, context):
 
         for selection in context.scene.mbfa_overwrite_selection:
-            selection.selected = True
+            selection.selected = not selection.selected
 
         self.report(
             {'INFO'},
@@ -125,3 +128,30 @@ class MBFA_OT_select_all(bpy.types.Operator):
         )
 
         return {'FINISHED'}
+    
+class MBFA_OT_reset_props(bpy.types.Operator):
+    bl_label = "Reset All Inputs"
+    bl_idname = "mbfa.reset_all"
+    
+    def execute(Self, context):
+        scene = context.scene
+
+        scene.alpha_folder = ""
+        scene.asset_dir_path = ""
+        scene.brushes_blend_file = "Brushes.blend"
+        scene.mbfa_preview_image = None
+
+        scene.mbfa_alpha_items.clear()
+        scene.mbfa_alpha_index = 0
+
+        scene.mbfa_skipped_alpha_items.clear()
+        scene.mbfa_skipped_alpha_index = 0
+
+        scene.mbfa_overwrite_selection.clear()
+
+        scene.mbfa_show_errors = False
+        scene.mbfa_has_new_results = False
+        scene.mbfa_result_log = ""
+        
+        return {'FINISHED'}
+        

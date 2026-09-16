@@ -1,7 +1,7 @@
 import bpy
 
 from .Models import MBFA_AlphaItem, MBFA_OverwriteSelection
-from .Operators import MBFA_OT_run, MBFA_OT_overwrite, MBFA_OT_reload_alpha_folder, MBFA_OT_set_all_texture_paint, MBFA_OT_set_all_sculpt, MBFA_OT_select_all
+from .Operators import MBFA_OT_reset_props, MBFA_OT_run, MBFA_OT_overwrite, MBFA_OT_reload_alpha_folder, MBFA_OT_set_all_texture_paint, MBFA_OT_set_all_sculpt, MBFA_OT_select_all
 from .LibraryManager import MBFA_UL_alpha_list, MBFA_UL_skipped_alpha_list, MBFA_LibraryManager
 import os
 
@@ -30,32 +30,56 @@ class MBFA_PT_panel(bpy.types.Panel):
         box = layout.box()
         
         row = box.row()
-        row.prop(context.scene, "mbfa_show_errors",
-            text="Result",
-            icon="TRIA_DOWN" if context.scene.mbfa_show_errors else "TRIA_RIGHT",
-            emboss=False
-        )
+        row.scale_y = 1.4
+        
+        btn = row.row(align=True)
+        btn.scale_x = 1.4  
+        btn.scale_y = 1.2  
 
+        btn.prop(context.scene, "mbfa_show_errors", text="",
+            icon="TRIA_DOWN" if context.scene.mbfa_show_errors else "TRIA_RIGHT",
+            emboss=True
+        )
+        row.label(text="Result")
+
+            
+        # New result notification
+        # --------------------------------------------------------------------------------------
+        if context.scene.mbfa_has_new_results:
+            row.label(text="", icon="RECORD_ON")
+        else:
+            row.label(text="", icon="RECORD_OFF")
+
+        row_innfo = layout.row()
+        row_innfo.label(text="No new result info", icon="RECORD_OFF")
+
+        row_innfo = layout.row()
+        row_innfo.label(text="New result info", icon="RECORD_ON")
+
+        # Display result info
+        # --------------------------------------------------------------------------------------
         if context.scene.mbfa_show_errors:
 
             content = box.column(align=True)
             
+            content.alert = True
+            content.label(text=context.scene.mbfa_result_log)
+            content.label(text="Conflicting brushes", icon="ERROR")
+            content.alert = False
             if len(context.scene.mbfa_skipped_alpha_items) <= 0:
-                # Placeholder background
+                
                 placeholder = box.column(align=True)
                 row = placeholder.row()
                 row.alignment = "CENTER"
                 row.label(text="Nothing to show yet!", icon="INFO")
+                
             else:
-                row.operator("mbfa.select_all", text="Select all", icon="CHECKBOX_HLT")
-                content.template_list(
-                    "MBFA_UL_skipped_alpha_list", "",
+                content.operator("mbfa.select_all", text="Select all", icon="CHECKBOX_HLT")
+                content.template_list("MBFA_UL_skipped_alpha_list", "",
                     context.scene, "mbfa_skipped_alpha_items",
                     context.scene, "mbfa_skipped_alpha_index",
                     rows=8
                 )
-            # box.template_list("MBFA_UL_skipped_alpha_list", "", context.scene, "mbfa_skipped_alpha_items",
-            #     context.scene, "mbfa_skipped_alpha_index", rows=8)
 
                 row = content.row()
                 row.alert = True
@@ -67,7 +91,11 @@ class MBFA_PT_panel(bpy.types.Panel):
                     box
                 )
 
+                    
+        # Reset all inputs and addon
         # --------------------------------------------------------------------------------------
+        layout.separator()
+        layout.operator("mbfa.reset_all", text="Reset all inputs and outputs", icon="FILE_REFRESH")
         
         box = layout.box()
         box.label(text="Alpha Folder", icon="FILE_FOLDER")
@@ -82,7 +110,8 @@ class MBFA_PT_panel(bpy.types.Panel):
         box = layout.box()
         box.label(text="Brushes Blend File Name", icon="FILE_BLEND")
         box.prop(context.scene, "brushes_blend_file", text="")
-
+        layout.separator()
+        
         # --------------------------------------------------------------------------------------
         
         box = layout.box()
@@ -169,7 +198,8 @@ classes = (
     MBFA_OT_reload_alpha_folder,
     MBFA_OT_set_all_texture_paint,
     MBFA_OT_set_all_sculpt,
-    MBFA_OT_select_all
+    MBFA_OT_select_all,
+    MBFA_OT_reset_props
 )
         
 def register():
@@ -206,7 +236,33 @@ def register():
         name="Brush Errors And Update",
         default=False
     )
+    bpy.types.Scene.mbfa_has_new_results = bpy.props.BoolProperty(
+    default=False
+    )
+    bpy.types.Scene.mbfa_result_log = bpy.props.StringProperty(
+        default=""
+    )
     
+def resetProps(context):
+    scene = context.scene
+
+    scene.alpha_folder = ""
+    scene.asset_dir_path = ""
+    scene.brushes_blend_file = "Brushes.blend"
+    scene.mbfa_preview_image = None
+
+    scene.mbfa_alpha_items.clear()
+    scene.mbfa_alpha_index = 0
+
+    scene.mbfa_skipped_alpha_items.clear()
+    scene.mbfa_skipped_alpha_index = 0
+
+    scene.mbfa_overwrite_selection.clear()
+
+    scene.mbfa_show_errors = False
+    scene.mbfa_has_new_results = False
+    scene.mbfa_result_log = ""
+
 def unregister():
 
     MBFA_LibraryManager.unregisterAlphaPreviews()
@@ -222,6 +278,8 @@ def unregister():
         "mbfa_skipped_alpha_index",
         "mbfa_overwrite_selection",
         "mbfa_show_errors",
+        "mbfa_has_new_results",
+        "mbfa_result_log"
     ):
         if hasattr(bpy.types.Scene, prop):
             delattr(bpy.types.Scene, prop)
