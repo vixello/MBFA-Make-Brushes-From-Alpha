@@ -1,8 +1,23 @@
 import bpy
 
-from .Models import MBFA_AlphaItem, MBFA_OverwriteSelection
-from .Operators import MBFA_OT_reset_props, MBFA_OT_run, MBFA_OT_overwrite, MBFA_OT_reload_alpha_folder, MBFA_OT_set_all_texture_paint, MBFA_OT_set_all_sculpt, MBFA_OT_select_all
-from .LibraryManager import MBFA_UL_alpha_list, MBFA_UL_skipped_alpha_list, MBFA_LibraryManager
+from .Models import MBFA_AlphaItem, MBFA_BrushCatalogAssignment, MBFA_OverwriteSelection, MBFA_Catalog
+
+from .Operators import (
+    MBFA_OT_run,
+    MBFA_OT_overwrite,
+    MBFA_OT_reload_alpha_folder,
+    MBFA_OT_set_all_texture_paint,
+    MBFA_OT_set_all_sculpt,
+    MBFA_OT_select_all,
+    MBFA_OT_reset_props,
+    MBFA_OT_assign_catalog,
+    MBFA_OT_create_catalog,
+    MBFA_OT_rename_catalog,
+    MBFA_OT_delete_catalog,
+    MBFA_OT_select_deselect_from_catalog,
+    MBFA_OT_refresh_catalogs
+)
+from .LibraryManager import MBFA_UL_alpha_list, MBFA_UL_skipped_alpha_list, MBFA_LibraryManager, MBFA_UL_catalogs
 import os
 
 class MBFA_PT_panel(bpy.types.Panel):
@@ -14,7 +29,7 @@ class MBFA_PT_panel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        
+
         if not hasattr(context.scene, "mbfa_alpha_items"):
             layout.label(text="MBFA not initialized yet")
             return
@@ -74,7 +89,7 @@ class MBFA_PT_panel(bpy.types.Panel):
                 row.label(text="Nothing to show yet!", icon="INFO")
                 
             else:
-                content.operator("mbfa.select_all", text="Select all", icon="CHECKBOX_HLT")
+                content.operator("mbfa.select_all", text="Select all", icon="CHECKBOX_HLT").overwrite = True
                 content.template_list("MBFA_UL_skipped_alpha_list", "",
                     context.scene, "mbfa_skipped_alpha_items",
                     context.scene, "mbfa_skipped_alpha_index",
@@ -91,7 +106,6 @@ class MBFA_PT_panel(bpy.types.Panel):
                     box
                 )
 
-                    
         # Reset all inputs and addon
         # --------------------------------------------------------------------------------------
         layout.separator()
@@ -112,10 +126,33 @@ class MBFA_PT_panel(bpy.types.Panel):
         box.prop(context.scene, "brushes_blend_file", text="")
         layout.separator()
         
+        # Asset catalogs
+        # ----------------------------------------------------------
+        box = layout.box()
+        box.label(text="Asset Catalogs", icon="ASSET_MANAGER")
+
+        row = box.row()
+        row.template_list(
+            "MBFA_UL_catalogs", "",
+            context.scene, "mbfa_catalogs",
+            context.scene, "mbfa_catalog_index",
+            rows=4
+        )
+
+        buttons = row.column(align=True)
+        buttons.operator("mbfa.select_deselect_from_catalog", text="", icon="CHECKBOX_HLT")
+        buttons.operator("mbfa.create_catalog", text="", icon="ADD")
+        buttons.operator("mbfa.rename_catalog", text="", icon="GREASEPENCIL")
+        buttons.operator("mbfa.delete_catalog", text="", icon="REMOVE")
+
+        box.row().operator("mbfa.refresh_catalogs", text="Refresh Catalogs", icon="FILE_REFRESH")
+        box.row().operator("mbfa.assign_catalog", text="Assign Selected", icon="ASSET_MANAGER")
+                    
         # --------------------------------------------------------------------------------------
         
         box = layout.box()
         box.label(text="Alpha Browser", icon="IMAGE_DATA")
+        box.operator("mbfa.select_all", text="Select all", icon="CHECKBOX_HLT")
 
         row = box.row()
         
@@ -190,16 +227,29 @@ class MBFA_PanelUtils:
 classes = (
     MBFA_AlphaItem,
     MBFA_OverwriteSelection,
+    MBFA_BrushCatalogAssignment,
+    
+    MBFA_Catalog,
     MBFA_UL_alpha_list,
     MBFA_UL_skipped_alpha_list,
+    
     MBFA_PT_panel,
     MBFA_OT_run,
     MBFA_OT_overwrite,
+    
     MBFA_OT_reload_alpha_folder,
     MBFA_OT_set_all_texture_paint,
     MBFA_OT_set_all_sculpt,
     MBFA_OT_select_all,
-    MBFA_OT_reset_props
+    MBFA_OT_reset_props,
+    
+    MBFA_OT_create_catalog,
+    MBFA_OT_rename_catalog,
+    MBFA_OT_delete_catalog,
+    MBFA_OT_assign_catalog,
+    MBFA_UL_catalogs,
+    MBFA_OT_select_deselect_from_catalog,
+    MBFA_OT_refresh_catalogs
 )
         
 def register():
@@ -214,7 +264,9 @@ def register():
         )
     bpy.types.Scene.asset_dir_path = bpy.props.StringProperty(
         name="Brushes Asset Library Folder", 
-        subtype="DIR_PATH"
+        subtype="DIR_PATH",
+        update=lambda self, context:
+            MBFA_LibraryManager.refresh_catalog_list(context)
         )
     bpy.types.Scene.brushes_blend_file = bpy.props.StringProperty(
         name="Brushes File",
@@ -242,6 +294,15 @@ def register():
     bpy.types.Scene.mbfa_result_log = bpy.props.StringProperty(
         default=""
     )
+
+    bpy.types.Scene.mbfa_catalogs = bpy.props.CollectionProperty(
+        type=MBFA_Catalog
+    )
+    bpy.types.Scene.mbfa_catalog_index = bpy.props.IntProperty()
+    
+    bpy.types.Scene.mbfa_brush_catalog_assignments = bpy.props.CollectionProperty(
+    type=MBFA_BrushCatalogAssignment
+)
     
 def resetProps(context):
     scene = context.scene
@@ -279,7 +340,9 @@ def unregister():
         "mbfa_overwrite_selection",
         "mbfa_show_errors",
         "mbfa_has_new_results",
-        "mbfa_result_log"
+        "mbfa_result_log",
+        "mbfa_catalogs",
+        "mbfa_catalog_index",
     ):
         if hasattr(bpy.types.Scene, prop):
             delattr(bpy.types.Scene, prop)

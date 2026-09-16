@@ -116,16 +116,24 @@ class MBFA_OT_select_all(bpy.types.Operator):
 
     bl_label = "Select all"
     bl_idname = "mbfa.select_all"
-
+    
+    overwrite: bpy.props.BoolProperty(
+        default=False
+    )
+    
     def execute(self, context):
 
-        for selection in context.scene.mbfa_overwrite_selection:
-            selection.selected = not selection.selected
+        if self.overwrite:
+            for selection in context.scene.mbfa_overwrite_selection:
+                selection.selected = not selection.selected
 
-        self.report(
-            {'INFO'},
-            "All brushes selected to be overwritten."
-        )
+            self.report(
+                {'INFO'},
+                "All brushes selected to be overwritten."
+            )
+        else:
+            for item in context.scene.mbfa_alpha_items:
+                item.selected = not item.selected
 
         return {'FINISHED'}
     
@@ -155,3 +163,157 @@ class MBFA_OT_reset_props(bpy.types.Operator):
         
         return {'FINISHED'}
         
+class MBFA_OT_create_catalog(bpy.types.Operator):
+
+    bl_label = "Create Catalog"
+    bl_idname = "mbfa.create_catalog"
+
+    name: bpy.props.StringProperty(name="Catalog Name")
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+    def execute(self, context):
+
+        success, result = MBFA_LibraryManager.create_catalog(context, self.name)
+
+        if not success:
+            self.report({'ERROR'}, result)
+            return {'CANCELLED'}
+
+        self.report(
+            {'INFO'},
+            f"Created catalog: {self.name}"
+        )
+
+        return {'FINISHED'}
+    
+class MBFA_OT_rename_catalog(bpy.types.Operator):
+
+    bl_label = "Rename Catalog"
+    bl_idname = "mbfa.rename_catalog"
+
+    name: bpy.props.StringProperty(name="New Name")
+
+    def invoke(self, context, event):
+
+        catalogs = context.scene.mbfa_catalogs
+
+        if not catalogs:
+            return {'CANCELLED'}
+
+        catalog = catalogs[context.scene.mbfa_catalog_index]
+
+        self.name = catalog.name
+
+        return context.window_manager.invoke_props_dialog(self)
+
+    def execute(self, context):
+
+        catalogs = context.scene.mbfa_catalogs
+
+        if not catalogs:
+            return {'CANCELLED'}
+
+        catalog = catalogs[context.scene.mbfa_catalog_index]
+
+        success, message = MBFA_LibraryManager.rename_catalog(
+            context,
+            catalog,
+            self.name
+        )
+
+        if not success:
+            self.report({'ERROR'}, message)
+            return {'CANCELLED'}
+
+        self.report({'INFO'}, "Catalog renamed.")
+
+        return {'FINISHED'}
+    
+class MBFA_OT_delete_catalog(bpy.types.Operator):
+
+    bl_label = "Delete Catalog"
+    bl_idname = "mbfa.delete_catalog"
+
+    def execute(self, context):
+
+        catalogs = context.scene.mbfa_catalogs
+
+        if not catalogs:
+            return {'CANCELLED'}
+
+        index = context.scene.mbfa_catalog_index
+        catalog = catalogs[index]
+
+        success, message = MBFA_LibraryManager.delete_catalog(context, catalog)
+
+        if not success:
+            self.report({'ERROR'}, message)
+            return {'CANCELLED'}
+
+        self.report(
+            {'INFO'},
+            "Catalog deleted."
+        )
+
+        return {'FINISHED'}
+    
+class MBFA_OT_assign_catalog(bpy.types.Operator):
+    bl_label = "Assign Selected"
+    bl_idname = "mbfa.assign_catalog"
+
+    def execute(self, context):
+        scene = context.scene
+        catalogs = scene.mbfa_catalogs
+        if not catalogs: self.report({'ERROR'}, "No catalogs available."); return {'CANCELLED'}
+
+        idx = scene.mbfa_catalog_index
+        if idx < 0 or idx >= len(catalogs): self.report({'ERROR'}, "No catalog selected."); return {'CANCELLED'}
+
+        catalog = catalogs[idx]
+        selected_items = [item for item in scene.mbfa_alpha_items if item.selected]
+        if not selected_items: self.report({'ERROR'}, "No brushes selected."); return {'CANCELLED'}
+
+        result = MBFA_LibraryManager.assign_catalog(context, selected_items, catalog.uuid)
+        assigned = result.get("assigned", []); missing = result.get("missing", []); failed = result.get("failed", [])
+        
+        if failed:
+            details = []
+
+            for failure in failed:
+                if isinstance(failure, dict):
+                    details.append(f"{failure.get('name', 'Unknown')}: {failure.get('error', 'Unknown error')}")
+                else:
+                    details.append(str(failure))
+
+            self.report({'ERROR'}, f"Catalog assignment failed: {' | '.join(details)[:250]}")
+        if assigned: 
+            self.report({'INFO'}, f"Assigned {len(assigned)} brush(es) to '{catalog.name}'.")
+        if missing: 
+            self.report({'WARNING'}, f"{len(missing)} brush(es) were not found.")
+        
+        if not assigned and not missing and not failed: 
+            self.report({'WARNING'}, "Nothing was assigned.")
+
+        return {'FINISHED'}
+
+class MBFA_OT_select_deselect_from_catalog(bpy.types.Operator):
+    bl_label = "Select/deselect from catalog"
+    bl_idname = "mbfa.select_deselect_from_catalog"
+    
+    def execute(self, context):
+        MBFA_LibraryManager.select_brushes_in_catalog(context)
+        return {'FINISHED'}
+    
+class MBFA_OT_refresh_catalogs(bpy.types.Operator):
+    bl_label = "Refresh catalogs"
+    bl_idname = "mbfa.refresh_catalogs"
+    
+    def execute(self, context):
+        MBFA_LibraryManager.refresh_catalog_list(context)
+        MBFA_LibraryManager.refresh_brush_catalog_assignments(context)
+        return {'FINISHED'}
+    
+       
+    

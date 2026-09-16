@@ -6,6 +6,11 @@ class MBFA_AlphaItem(bpy.types.PropertyGroup):
     image_path: bpy.props.StringProperty()
     brush_name: bpy.props.StringProperty()
 
+    selected: bpy.props.BoolProperty(
+        name="Selected",
+        default=False
+    )
+
     texture_paint: bpy.props.BoolProperty(
         name="Texture Paint",
         description="Create this alpha as a Texture Paint brush",
@@ -59,3 +64,20 @@ class MBFA_OverwriteSelection(bpy.types.PropertyGroup):
         description="Overwrite this existing brush",
         default=False
     )
+    
+class MBFA_Catalog(bpy.types.PropertyGroup):
+    name: bpy.props.StringProperty(
+        name="Catalog"
+    )
+
+    uuid: bpy.props.StringProperty(
+        name="UUID"
+    )
+
+    path: bpy.props.StringProperty(
+        name="Path"
+    )
+    
+class MBFA_BrushCatalogAssignment(bpy.types.PropertyGroup):
+    brush_name: bpy.props.StringProperty()
+    catalog_uuid: bpy.props.StringProperty()

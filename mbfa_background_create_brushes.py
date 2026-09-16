@@ -134,7 +134,12 @@ for data in items:
 
         # MARK AS ASSET
         brush.asset_mark()
-        
+
+        catalog_uuid = data.get("catalog_uuid", "")
+
+        if catalog_uuid:
+            brush.asset_data.catalog_id = catalog_uuid
+                
         created_brushes.append(data)
         
         print("========================================")
