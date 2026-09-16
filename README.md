@@ -28,7 +28,13 @@ It supports both **Sculpt** and **Texture Paint** brushes and stores the generat
   - `.tif`
   - `.bmp`
   - `.psd`
-
+- Asset Catalog management:
+    - Create catalogs
+    - Rename catalogs
+    - Delete catalogs
+    - Assign brushes to catalogs
+    - Read catalog assignments from external .blend files
+      
 ## Requirements
 
 - Blender 5.2 or newer
@@ -57,7 +63,7 @@ It supports both **Sculpt** and **Texture Paint** brushes and stores the generat
 
 In the MBFA panel, select the folder containing your alpha images.
 
-<img width="314" height="306" alt="obraz" src="https://github.com/user-attachments/assets/e0da684f-c8b3-4731-8b68-bc9f6b37108c" />
+<img width="342" height="230" alt="obraz" src="https://github.com/user-attachments/assets/d369a8e7-e081-4071-8a03-f36bc94a3730" />
 
 Click:
 
@@ -69,19 +75,22 @@ MBFA will scan the folder and display all supported alpha images in the Alpha Br
 
 ## 2. Select Brush Type
 
-Each alpha has a checkbox in the Alpha Browser.
+Each alpha has a checkbox for selection (first to the left) and for marking it as sculpting or texture paint brush (second to the left) in the Alpha Browser.
+<img width="62" height="32" alt="obraz" src="https://github.com/user-attachments/assets/c8deede4-56c7-4520-b05e-9fa5f9a20c00" />
 
-| Checkbox | Brush Type |
+| Checkbox 2 | Brush Type |
 |----------|------------|
 | Unchecked | Sculpt |
 | Checked | Texture Paint |
 
-<img width="318" height="273" alt="obraz" src="https://github.com/user-attachments/assets/b7d69b44-76d0-4e06-9f9a-e3eda5df1ace" />
+<img width="337" height="304" alt="obraz" src="https://github.com/user-attachments/assets/50bc337f-60f3-4ca6-a564-309481aa4a9d" />
 
 You can also change all alpha images at once using:
 
-- **All Texture Paint**
-- **All Sculpt**
+`All Texture Paint`
+`All Sculpt`
+
+Or `Select all` for assigning it to a catalog.
 
 ---
 
