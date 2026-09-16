@@ -118,6 +118,18 @@ MBFA will generate the brushes and store them in the configured asset library.
 
 ---
 
+## Asset Catalogs
+
+MBFA includes a built‑in Asset Catalog Manager that lets you organize generated brushes inside Blender’s Asset Browser. Catalogs help you group brushes (e.g., Skin, Hard Surface, Fabric, Stamps, Noise, etc.) and keep large brush libraries tidy.
+
+The asset catalog browser UI:
+
+<img width="335" height="218" alt="obraz" src="https://github.com/user-attachments/assets/4209f238-1320-4af9-aae9-d369c434ea18" />
+
+To add a brush to the catalog, selecte it in the alpha browser list and click `Assing Selected` in the Asset Catalogs.
+
+---
+
 ## 📁 Brushes Asset Library
 
 MBFA uses a separate `.blend` file to store all generated brushes.
