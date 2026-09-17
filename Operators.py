@@ -297,7 +297,46 @@ class MBFA_OT_assign_catalog(bpy.types.Operator):
             self.report({'WARNING'}, "Nothing was assigned.")
 
         return {'FINISHED'}
+    
+class MBFA_OT_unassign_catalog(bpy.types.Operator):
+    bl_label = "Unassign Selected"
+    bl_idname = "mbfa.unassign_catalog"
 
+    def execute(self, context):
+        scene = context.scene
+        catalogs = scene.mbfa_catalogs
+        if not catalogs: self.report({'ERROR'}, "No catalogs available."); return {'CANCELLED'}
+
+        idx = scene.mbfa_catalog_index
+        if idx < 0 or idx >= len(catalogs): self.report({'ERROR'}, "No catalog selected."); return {'CANCELLED'}
+
+        catalog = catalogs[idx]
+        selected_items = [item for item in scene.mbfa_alpha_items if item.selected]
+        if not selected_items: self.report({'ERROR'}, "No brushes selected."); return {'CANCELLED'}
+
+        result = MBFA_LibraryManager.unassign_catalog(context, selected_items)
+        unassigned = result.get("unassigned", []); missing = result.get("missing", []); failed = result.get("failed", [])
+        
+        if failed:
+            details = []
+
+            for failure in failed:
+                if isinstance(failure, dict):
+                    details.append(f"{failure.get('name', 'Unknown')}: {failure.get('error', 'Unknown error')}")
+                else:
+                    details.append(str(failure))
+
+            self.report({'ERROR'}, f"Catalog unassignment failed: {' | '.join(details)[:250]}")
+        if unassigned: 
+            self.report({'INFO'}, f"Unassigned  {len(unassigned)} brush(es) to '{catalog.name}'.")
+        if missing: 
+            self.report({'WARNING'}, f"{len(missing)} brush(es) were not found.")
+        
+        if not unassigned and not missing and not failed: 
+            self.report({'WARNING'}, "Nothing was unassigned.")
+
+        return {'FINISHED'}
+    
 class MBFA_OT_select_deselect_from_catalog(bpy.types.Operator):
     bl_label = "Select/deselect from catalog"
     bl_idname = "mbfa.select_deselect_from_catalog"
