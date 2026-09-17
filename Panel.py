@@ -15,7 +15,8 @@ from .Operators import (
     MBFA_OT_rename_catalog,
     MBFA_OT_delete_catalog,
     MBFA_OT_select_deselect_from_catalog,
-    MBFA_OT_refresh_catalogs
+    MBFA_OT_refresh_catalogs,
+    MBFA_OT_unassign_catalog
 )
 from .LibraryManager import MBFA_UL_alpha_list, MBFA_UL_skipped_alpha_list, MBFA_LibraryManager, MBFA_UL_catalogs
 import os
@@ -146,7 +147,8 @@ class MBFA_PT_panel(bpy.types.Panel):
         buttons.operator("mbfa.delete_catalog", text="", icon="REMOVE")
 
         box.row().operator("mbfa.refresh_catalogs", text="Refresh Catalogs", icon="FILE_REFRESH")
-        box.row().operator("mbfa.assign_catalog", text="Assign Selected", icon="ASSET_MANAGER")
+        box.row().operator("mbfa.assign_catalog", text="Assign Selected", icon="ADD")
+        box.row().operator("mbfa.unassign_catalog", text="Unassign Selected", icon="REMOVE")
                     
         # --------------------------------------------------------------------------------------
         
@@ -251,6 +253,7 @@ classes = (
     MBFA_OT_rename_catalog,
     MBFA_OT_delete_catalog,
     MBFA_OT_assign_catalog,
+    MBFA_OT_unassign_catalog,
     MBFA_UL_catalogs,
     MBFA_OT_select_deselect_from_catalog,
     MBFA_OT_refresh_catalogs
