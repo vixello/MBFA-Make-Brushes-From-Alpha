@@ -1,4 +1,4 @@
-## MBFA - Make Brush Froom Alpha Blender Addon ![Blender](https://img.shields.io/badge/-Blender-333333?style=flat&logo=blender) 
+## MBFA - Make Brush From Alpha Blender Addon ![Blender](https://img.shields.io/badge/-Blender-333333?style=flat&logo=blender) 
 
 
 MBFA is a Blender addon that converts alpha images into reusable Blender brushes.
