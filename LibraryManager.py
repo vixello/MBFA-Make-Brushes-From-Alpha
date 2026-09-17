@@ -634,6 +634,114 @@ class MBFA_LibraryManager:
         return result
     
     @staticmethod
+    def unassign_catalog(context, items):
+        scene = context.scene
+
+        asset_save_folder = scene.asset_dir_path
+
+        if not asset_save_folder:
+            return {
+                "unassigned": [],
+                "missing": [],
+                "failed": ["Asset library folder is not set."]
+            }
+
+        asset_file_path = os.path.join(
+            asset_save_folder,
+            scene.brushes_blend_file
+        )
+
+        if not os.path.exists(asset_file_path):
+            return {
+                "unassigned": [],
+                "missing": [],
+                "failed": ["Asset library file does not exist."]
+            }
+
+        brush_names = []
+
+        for item in items:
+            if item.selected:
+                brush_names.append(item.brush_name)
+
+        if not brush_names:
+            return {
+                "unassigned": [],
+                "missing": [],
+                "failed": ["No brushes selected."]
+            }
+
+        external_script_path = os.path.join(
+            os.path.dirname(__file__),
+            "mbfa_background_unassign_catalog.py"
+        )
+
+        result_path = os.path.join(
+            tempfile.gettempdir(),
+            "mbfa_unassign_catalog_result.json"
+        )
+
+        settings_path = os.path.join(
+            tempfile.gettempdir(),
+            "mbfa_unassign_catalog_settings.json"
+        )
+
+        settings = {
+            "asset_file_path": os.path.abspath(asset_file_path),
+            "result_path": result_path,
+            "brush_names": brush_names,
+            "catalog_uuid": catalog_uuid,
+        }
+
+        with open(settings_path, "w", encoding="utf-8") as f:
+            json.dump(settings, f, indent=4)
+
+        blender_executable = bpy.app.binary_path
+
+        command = [
+            blender_executable,
+            "--background",
+            "--python",
+            external_script_path,
+            "--",
+            settings_path,
+        ]
+
+        try:
+            subprocess.run(
+                command,
+                check=True
+            )
+        except subprocess.CalledProcessError as e:
+            return {
+                "unassigned": [],
+                "missing": [],
+                "failed": [f"Background Blender failed: {e}"]
+            }
+
+        if not os.path.exists(result_path):
+            return {
+                "unassigned": [],
+                "missing": [],
+                "failed": ["No result returned from background Blender."]
+            }
+
+        try:
+            with open(result_path, "r", encoding="utf-8") as f:
+                result = json.load(f)
+        except Exception as e:
+            return {
+                "unassigned": [],
+                "missing": [],
+                "failed": [f"Could not read unassignment result: {e}"]
+            }
+            
+        if result.get("unassigned"):
+            MBFA_LibraryManager.refresh_brush_catalog_assignments(context)
+
+        return result
+        
+    @staticmethod
     def refresh_brush_catalog_assignments(context):
         scene = context.scene
         folder = scene.asset_dir_path
