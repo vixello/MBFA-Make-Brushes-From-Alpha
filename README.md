@@ -105,7 +105,7 @@ You can configure:
 - Strength
 - Spacing
 
-<img width="315" height="475" alt="obraz" src="https://github.com/user-attachments/assets/77b6ab35-2f82-4909-bc13-e80eb5517279" />
+<img width="334" height="505" alt="obraz" src="https://github.com/user-attachments/assets/1fe6c1b3-f80a-4050-95af-b865ee578971" />
 
 ## 🖌 Creating Brushes
 
@@ -117,15 +117,17 @@ MBFA will generate the brushes and store them in the configured asset library.
 
 ---
 
-## Asset Catalogs
+## `Asset Catalogs`
 
 MBFA includes a built‑in Asset Catalog Manager that lets you organize generated brushes inside Blender’s Asset Browser. Catalogs help you group brushes (e.g., Skin, Hard Surface, Fabric, Stamps, Noise, etc.) and keep large brush libraries tidy.
 
 The asset catalog browser UI:
 
-<img width="335" height="218" alt="obraz" src="https://github.com/user-attachments/assets/4209f238-1320-4af9-aae9-d369c434ea18" />
+<img width="337" height="242" alt="obraz" src="https://github.com/user-attachments/assets/beb66437-d051-4ca6-aaf8-8ab57c33bc24" />
 
-To add a brush to the catalog, selecte it in the alpha browser list and click `Assing Selected` in the Asset Catalogs.
+To add a brush to the catalog, selecte it in the alpha browser list and click `Assing Selected` in the `Asset Catalogs`.
+
+To remove it from a caalog, simply select and click `Unassing Selected`.
 
 ---
 
