@@ -23,13 +23,10 @@ def main():
 
     # Open the asset library blend file
     if not os.path.exists(asset_file_path):
-        result["failed"].append({
-            "error": f"Asset file not found: {asset_file_path}"
-        })
-
+        result["failed"].append({"error": f"Asset file not found: {asset_file_path}"})
+        
         with open(result_path, "w", encoding="utf-8") as f:
             json.dump(result, f, indent=4)
-
         return
 
     bpy.ops.wm.open_mainfile(filepath=asset_file_path)
