@@ -222,6 +222,10 @@ class MBFA_PanelUtils:
             row = stroke_method_box.row()
             row.use_property_split = False
             row.prop(item, "spacing", text="Spacing")
+            
+            row = stroke_method_box.row()
+            row.use_property_split = False
+            row.prop(item, "invert_alpha", text="Invert Alpha")
                 
                 
 classes = (
