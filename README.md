@@ -3,7 +3,7 @@
 
 MBFA is a Blender addon that converts alpha images into reusable Blender brushes.
 
-It supports both **Sculpt** and **Texture Paint** brushes and stores the generated brushes in a separate `Brushes.blend` asset library.
+It supports both **Sculpt** and **Texture Paint** brushes and stores the generated brushes in a separate `.blend` file of choice.
 
 
 ---
@@ -15,8 +15,7 @@ It supports both **Sculpt** and **Texture Paint** brushes and stores the generat
 - Create **Texture Paint** brushes
 - Browse alpha images inside Blender
 - Preview alpha images
-- Set individual brush names
-- Configure brush settings
+- Configure brush settings: `name`, `stroke method`, `size`, `strength`, `spacing`, `invert alpha`
 - Batch set all brushes to Sculpt
 - Batch set all brushes to Texture Paint
 - Store brushes in a separate `.blend` file
