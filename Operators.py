@@ -314,7 +314,7 @@ class MBFA_OT_unassign_catalog(bpy.types.Operator):
         selected_items = [item for item in scene.mbfa_alpha_items if item.selected]
         if not selected_items: self.report({'ERROR'}, "No brushes selected."); return {'CANCELLED'}
 
-        result = MBFA_LibraryManager.unassign_catalog(context, selected_items)
+        result = MBFA_LibraryManager.unassign_catalog(context, selected_items, catalog.uuid)
         unassigned = result.get("unassigned", []); missing = result.get("missing", []); failed = result.get("failed", [])
         
         if failed:
@@ -328,7 +328,7 @@ class MBFA_OT_unassign_catalog(bpy.types.Operator):
 
             self.report({'ERROR'}, f"Catalog unassignment failed: {' | '.join(details)[:250]}")
         if unassigned: 
-            self.report({'INFO'}, f"Unassigned  {len(unassigned)} brush(es) to '{catalog.name}'.")
+            self.report({'INFO'}, f"Unassigned {len(unassigned)} brush(es) from '{catalog.name}'.")
         if missing: 
             self.report({'WARNING'}, f"{len(missing)} brush(es) were not found.")
         
@@ -348,6 +348,7 @@ class MBFA_OT_select_deselect_from_catalog(bpy.types.Operator):
 class MBFA_OT_refresh_catalogs(bpy.types.Operator):
     bl_label = "Refresh catalogs"
     bl_idname = "mbfa.refresh_catalogs"
+    bl_description = "Discard staged catalog changes and reload the committed catalogs from disk."
     
     def execute(self, context):
         MBFA_LibraryManager.refresh_catalog_list(context)
