@@ -18,10 +18,12 @@ def main():
         for brush in bpy.data.brushes:
             if brush.asset_data is None: 
                 continue
-            uuid = str(brush.asset_data.catalog_id)
-            
-            if not uuid: 
+            catalog_id = brush.asset_data.catalog_id
+
+            if not catalog_id:
                 continue
+
+            uuid = str(catalog_id)
             
             result["assignments"].append({"brush_name": brush.name, "catalog_uuid": uuid})
             

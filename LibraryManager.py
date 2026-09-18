@@ -144,6 +144,7 @@ class MBFA_LibraryManager:
 
         try:
             result = subprocess.run(command, check=True)
+            scene = context.scene
             
             created = []
             skipped = []
@@ -156,8 +157,27 @@ class MBFA_LibraryManager:
                 created = result_data.get("created", [])
                 skipped = result_data.get("skipped", [])
                 failed = result_data.get("failed", [])
-                scene = context.scene
+                
+                if len(created) > 0:
+                    print("")
+                    print("========================================")
+                    print("MBFA: Brushes were created.")
+                    print("MBFA: Committing staged catalogs.")
+                    print("========================================")
 
+                    catalog_success, catalog_error = (MBFA_LibraryManager.commit_catalogs(context))
+
+                    if not catalog_success:
+                        failed.append({"error": f"Catalog commit failed: {catalog_error}"})
+
+                else:
+                    print("")
+                    print("========================================")
+                    print("MBFA: No brushes were created.")
+                    print("MBFA: Catalog changes NOT committed.")
+                    print("MBFA: Asset catalog file remains untouched.")
+                    print("========================================")
+                    
             scene.mbfa_skipped_alpha_items.clear()
             scene.mbfa_overwrite_selection.clear()
 
@@ -310,7 +330,6 @@ class MBFA_LibraryManager:
                 item.invert_alpha = False
 
             MBFA_LibraryManager.registerAlphaPreviews(item)
-            MBFA_LibraryManager.refresh_catalog_list(context)
 
     @staticmethod
     def registerAlphaPreviews(item):
@@ -431,7 +450,7 @@ class MBFA_LibraryManager:
             )
         else:
             scene.mbfa_catalog_index = 0
-            
+                
     @staticmethod
     def create_catalog(context, name):
 
@@ -440,15 +459,24 @@ class MBFA_LibraryManager:
         if not name:
             return False, "Catalog name cannot be empty."
 
-        asset_dir = context.scene.asset_dir_path
+        scene = context.scene
+        asset_dir = scene.asset_dir_path
 
         if not asset_dir:
             return False, "Set the asset library folder first."
 
-        catalogs = MBFA_LibraryManager.load_catalogs(asset_dir)
+        # Use the catalogs currently displayed in the UI.
+        # Do NOT reload from disk and do NOT save to disk here.
+        catalogs = [
+            {
+                "uuid": catalog.uuid,
+                "path": catalog.path,
+                "name": catalog.name,
+            }
+            for catalog in scene.mbfa_catalogs
+        ]
 
         for catalog in catalogs:
-
             if catalog["name"].lower() == name.lower():
                 return False, "A catalog with that name already exists."
 
@@ -458,14 +486,16 @@ class MBFA_LibraryManager:
             "name": name,
         }
 
-        catalogs.append(new_catalog)
+        catalog = scene.mbfa_catalogs.add()
+        catalog.name = new_catalog["name"]
+        catalog.uuid = new_catalog["uuid"]
+        catalog.path = new_catalog["path"]
 
-        MBFA_LibraryManager.save_catalogs(asset_dir, catalogs)
+        scene.mbfa_catalog_index = len(scene.mbfa_catalogs) - 1
 
-        MBFA_LibraryManager.refresh_catalog_list(context)
+        print("MBFA: Catalog staged:", new_catalog["name"], new_catalog["uuid"])
 
         return True, new_catalog["uuid"]
-    
     @staticmethod
     def rename_catalog(context, catalog, new_name):
 
@@ -474,57 +504,79 @@ class MBFA_LibraryManager:
         if not new_name:
             return False, "Catalog name cannot be empty."
 
-        asset_dir = context.scene.asset_dir_path
+        scene = context.scene
 
-        if not asset_dir:
-            return False, "Set the asset library folder first."
+        # Check against currently staged catalogs.
+        for entry in scene.mbfa_catalogs:
 
-        catalogs = MBFA_LibraryManager.load_catalogs(asset_dir)
+            if entry.uuid == catalog.uuid:
+                continue
 
-        for entry in catalogs:
+            if entry.name.lower() == new_name.lower():
+                return False, "A catalog with that name already exists."
 
-            if entry["uuid"] == catalog.uuid:
-                entry["name"] = new_name
-                entry["path"] = new_name
-                break
+        catalog.name = new_name
+        catalog.path = new_name
 
-        else:
-            return False, "Catalog not found."
-
-        MBFA_LibraryManager.save_catalogs(
-            asset_dir,
-            catalogs
-        )
-
-        MBFA_LibraryManager.refresh_catalog_list(context)
+        print("MBFA: Catalog rename staged:", catalog.uuid, "->", new_name)
 
         return True, ""
     
     @staticmethod
     def delete_catalog(context, catalog):
 
+        scene = context.scene
+
+        index = -1
+
+        for i, entry in enumerate(scene.mbfa_catalogs):
+            if entry.uuid == catalog.uuid:
+                index = i
+                break
+
+        if index == -1:
+            return False, "Catalog not found."
+
+        print("MBFA: Catalog deletion staged:", catalog.name, catalog.uuid)
+
+        scene.mbfa_catalogs.remove(index)
+
+        if scene.mbfa_catalogs:
+            scene.mbfa_catalog_index = min(
+                scene.mbfa_catalog_index,
+                len(scene.mbfa_catalogs) - 1
+            )
+        else:
+            scene.mbfa_catalog_index = 0
+
+        return True, ""   
+    
+    @staticmethod
+    def get_staged_catalogs(context):
+        scene = context.scene
+
+        return [{
+            "uuid": catalog.uuid,
+            "path": catalog.path,
+            "name": catalog.name,
+            
+        } for catalog in scene.mbfa_catalogs]
+
+    @staticmethod
+    def commit_catalogs(context):
+        
         asset_dir = context.scene.asset_dir_path
-
+        
         if not asset_dir:
-            return False, "Set the asset library folder first."
+            return False, "Asset library folder is not set."
 
-        catalogs = MBFA_LibraryManager.load_catalogs(asset_dir)
-
-        catalogs = [
-            entry
-            for entry in catalogs
-            if entry["uuid"] != catalog.uuid
-        ]
-
-        MBFA_LibraryManager.save_catalogs(
-            asset_dir,
-            catalogs
-        )
-
-        MBFA_LibraryManager.refresh_catalog_list(context)
+        catalogs = MBFA_LibraryManager.get_staged_catalogs(context)
+        MBFA_LibraryManager.save_catalogs(asset_dir, catalogs)
+        
+        print("MBFA: Committed", len(catalogs), "catalog(s) to blender_assets.cats.txt")
 
         return True, ""
-            
+    
     @staticmethod
     def assign_catalog(context, items, catalog_uuid):
         scene = context.scene
@@ -634,7 +686,7 @@ class MBFA_LibraryManager:
         return result
     
     @staticmethod
-    def unassign_catalog(context, items):
+    def unassign_catalog(context, items, catalog_uuid):
         scene = context.scene
 
         asset_save_folder = scene.asset_dir_path
@@ -650,6 +702,8 @@ class MBFA_LibraryManager:
             asset_save_folder,
             scene.brushes_blend_file
         )
+
+        asset_file_path = os.path.abspath(asset_file_path)
 
         if not os.path.exists(asset_file_path):
             return {
@@ -676,71 +730,145 @@ class MBFA_LibraryManager:
             "mbfa_background_unassign_catalog.py"
         )
 
-        result_path = os.path.join(
-            tempfile.gettempdir(),
-            "mbfa_unassign_catalog_result.json"
+        # Temporary working directory
+        # ---------------------------------------------------------
+        temp_dir = tempfile.mkdtemp(
+            prefix="MBFA_unassign_catalog_"
         )
 
         settings_path = os.path.join(
-            tempfile.gettempdir(),
-            "mbfa_unassign_catalog_settings.json"
+            temp_dir,
+            "settings.json"
+        )
+
+        result_path = os.path.join(
+            temp_dir,
+            "result.json"
         )
 
         settings = {
-            "asset_file_path": os.path.abspath(asset_file_path),
+            "asset_file_path": asset_file_path,
             "result_path": result_path,
             "brush_names": brush_names,
-            "catalog_uuid": catalog_uuid,
+            "catalog_uuid": catalog_uuid
         }
 
-        with open(settings_path, "w", encoding="utf-8") as f:
-            json.dump(settings, f, indent=4)
-
-        blender_executable = bpy.app.binary_path
-
-        command = [
-            blender_executable,
-            "--background",
-            "--python",
-            external_script_path,
-            "--",
-            settings_path,
-        ]
-
         try:
-            subprocess.run(
+
+            # Write settings
+            # -----------------------------------------------------
+            with open(settings_path, "w", encoding="utf-8") as f:
+                json.dump(settings, f, indent=4)
+
+            blender_executable = bpy.app.binary_path
+
+            command = [
+                blender_executable,
+                "--background",
+                "--python",
+                external_script_path,
+                "--",
+                settings_path,
+            ]
+
+            print("")
+            print("========================================")
+            print("MBFA: Starting background Blender")
+            print("========================================")
+            print("Command:")
+            print(" ".join(command))
+            print("")
+
+            # Run Blender
+            # -----------------------------------------------------
+            process = subprocess.run(
                 command,
-                check=True
+                check=False,
+                capture_output=True,
+                text=True
             )
-        except subprocess.CalledProcessError as e:
-            return {
-                "unassigned": [],
-                "missing": [],
-                "failed": [f"Background Blender failed: {e}"]
-            }
 
-        if not os.path.exists(result_path):
-            return {
-                "unassigned": [],
-                "missing": [],
-                "failed": ["No result returned from background Blender."]
-            }
+            # Check process exit code
+            # -----------------------------------------------------
+            if process.returncode != 0:
 
-        try:
-            with open(result_path, "r", encoding="utf-8") as f:
-                result = json.load(f)
-        except Exception as e:
-            return {
-                "unassigned": [],
-                "missing": [],
-                "failed": [f"Could not read unassignment result: {e}"]
-            }
+                error_output = (
+                    process.stderr.strip()
+                    or process.stdout.strip()
+                    or "Unknown background Blender error."
+                )
+
+                return {
+                    "unassigned": [],
+                    "missing": [],
+                    "failed": [
+                        f"Background Blender failed "
+                        f"(exit code {process.returncode}): "
+                        f"{error_output}"
+                    ]
+                }
+
+            # Check result
+            # -----------------------------------------------------
+            if not os.path.exists(result_path):
+
+                return {
+                    "unassigned": [],
+                    "missing": [],
+                    "failed": [
+                        "Background Blender finished, "
+                        "but no result file was created."
+                    ]
+                }
+
+            # Read result
+            # -----------------------------------------------------
+            try:
+
+                with open(result_path, "r", encoding="utf-8") as f:
+                    result = json.load(f)
+
+            except Exception as e:
+
+                return {
+                    "unassigned": [],
+                    "missing": [],
+                    "failed": [
+                        f"Could not read unassignment result: {e}"
+                    ]
+                }
+
+            # -----------------------------------------------------
+            # Refresh UI assignment data
+            # -----------------------------------------------------
+
+            if result.get("unassigned"):
+                MBFA_LibraryManager.refresh_brush_catalog_assignments(
+                    context
+                )
+
+            return result
+
+        finally:
+
+            # -----------------------------------------------------
+            # Cleanup
+            # -----------------------------------------------------
+
+            for path in (
+                settings_path,
+                result_path,
+            ):
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
+
+            try:
+                os.rmdir(temp_dir)
+            except OSError:
+                pass
             
-        if result.get("unassigned"):
-            MBFA_LibraryManager.refresh_brush_catalog_assignments(context)
-
-        return result
-        
     @staticmethod
     def refresh_brush_catalog_assignments(context):
         scene = context.scene
